@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>蓝牙开锁</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1b2a;
+      --card:    #152238;
+      --border:  #1e3a5f;
+      --accent:  #3b82f6;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --success: #22c55e;
+      --warn:    #f59e0b;
+      --error:   #ef4444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 40px;
+    }
+
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .04em; color: var(--text); margin-bottom: 4px; }
+    .subtitle { font-size: .78rem; color: var(--muted); margin-bottom: 28px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 28px;
+    }
+    .card-title {
+      font-size: .7rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+    }
+    .field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { font-size: .75rem; color: var(--muted); width: 80px; flex-shrink: 0; }
+    .field input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 10px; color: var(--text); font-size: .78rem; font-family: monospace;
+      outline: none; transition: border-color .15s; -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus { border-color: var(--accent); }
+
+    .refresh-cfg-btn {
+      display: block; width: 100%; margin-top: 12px; background: none;
+      border: 1px solid var(--border); border-radius: 8px; color: var(--muted);
+      font-size: .75rem; padding: 7px 0; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: color .15s, border-color .15s;
+    }
+    .refresh-cfg-btn:hover, .refresh-cfg-btn:active { color: var(--text); border-color: var(--accent); }
+
+    .btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 28px; }
+
+    .scan-all-btn {
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); font-size: .75rem; padding: 6px 16px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: color .15s, border-color .15s;
+    }
+    .scan-all-btn:hover, .scan-all-btn:active { color: var(--text); border-color: var(--accent); }
+
+    #lockBtn {
+      width: 150px; height: 150px; border-radius: 50%; background: var(--card);
+      border: 3px solid var(--accent); color: var(--accent); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; outline: none; -webkit-tap-highlight-color: transparent;
+      transition: transform .1s, box-shadow .3s, border-color .3s, color .3s;
+      box-shadow: 0 0 24px rgba(59,130,246,.25); user-select: none;
+    }
+    #lockBtn:active  { transform: scale(.94); }
+    #lockBtn.busy    { border-color: var(--warn);    color: var(--warn);    box-shadow: 0 0 24px rgba(245,158,11,.3); animation: pulse 1.5s ease-in-out infinite; }
+    #lockBtn.success { border-color: var(--success); color: var(--success); box-shadow: 0 0 36px rgba(34,197,94,.35); }
+    #lockBtn.closed  { border-color: var(--accent);  color: var(--accent);  box-shadow: 0 0 24px rgba(59,130,246,.25); }
+    #lockBtn.error   { border-color: var(--error);   color: var(--error);   box-shadow: 0 0 24px rgba(239,68,68,.25); }
+
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 18px rgba(245,158,11,.25); }
+      50%      { box-shadow: 0 0 44px rgba(245,158,11,.55); }
+    }
+    .btn-icon { font-size: 2.6rem; line-height: 1; transition: transform .3s; }
+    #lockBtn.success .btn-icon { transform: scale(1.15); }
+    .btn-label { font-size: .85rem; font-weight: 600; letter-spacing: .05em; }
+
+    .log-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px; width: 100%; max-width: 400px;
+    }
+    .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .log-title { font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .log-clear { font-size: .68rem; color: var(--muted); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .log-clear:hover { color: var(--text); }
+    #logList { list-style: none; max-height: 220px; overflow-y: auto; }
+    #logList li { font-size: .74rem; font-family: monospace; padding: 3px 2px; border-bottom: 1px solid rgba(30,58,95,.6); color: var(--muted); word-break: break-all; }
+    #logList li:last-child { border-bottom: none; }
+    #logList li.info    { color: #93c5fd; }
+    #logList li.success { color: var(--success); }
+    #logList li.warn    { color: var(--warn); }
+    #logList li.error   { color: var(--error); }
+
+    .notice {
+      font-size: .75rem; color: var(--warn); background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.25); border-radius: 10px; padding: 10px 14px;
+      width: 100%; max-width: 400px; margin-top: 14px; line-height: 1.5; display: none;
+    }
+    .notice.show { display: block; }
+  </style>
+</head>
+<body>
+
+  <h1>蓝牙开锁</h1>
+  <p class="subtitle">Web Bluetooth · BLE 智能锁</p>
+
+  <div class="card">
+    <div class="card-title">锁配置</div>
+    <div class="field">
+      <label>账号</label>
+      <input type="text" id="cfg-login"   value="" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Cookies</label>
+      <input type="text" id="cfg-cookies" value="9B308BAAB362EDEB4DFE42EE2006829B" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>蓝牙ID</label>
+      <input type="text" id="cfg-btid"    value="" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>Key ID</label>
+      <input type="text" id="cfg-keyid"   value="" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label>到期时间</label>
+      <input type="text" id="cfg-expire"  value="" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>创建时间</label>
+      <input type="text" id="cfg-create"  value="" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>关锁延迟(秒)</label>
+      <input type="number" id="cfg-delay" value="10" min="1" max="300" autocomplete="off">
+    </div>
+    <button class="refresh-cfg-btn" onclick="refreshConfig()">&#x21BB;  刷新配置</button>
+  </div>
+
+  <div class="btn-wrap">
+    <button id="lockBtn" onclick="handleClick(false)">
+      <span class="btn-icon" id="btnIcon">&#x1F512;</span>
+      <span class="btn-label" id="btnLabel">开  锁</span>
+    </button>
+    <button class="scan-all-btn" onclick="handleClick(true)">找不到设备？扫描全部</button>
+  </div>
+
+  <div class="log-card">
+    <div class="log-header">
+      <span class="log-title">操作日志</span>
+      <button class="log-clear" onclick="clearLog()">清除</button>
+    </div>
+    <ul id="logList"><li>等待操作...</li></ul>
+  </div>
+
+  <div class="notice" id="notice"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  配置持久化（localStorage）
+// ═══════════════════════════════════════════════════════════════════
+const CFG_KEY = 'ble_lock_cfg';
+const CFG_FIELDS = ['cfg-login','cfg-cookies','cfg-btid','cfg-keyid','cfg-expire','cfg-create','cfg-delay'];
+
+function saveConfig() {
+  const data = {};
+  for (const id of CFG_FIELDS) {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.value;
+  }
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(data)); } catch(_) {}
+}
+
+function loadConfig() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch(_) {}
+  if (!data) return;
+  for (const id of CFG_FIELDS) {
+    const el = document.getElementById(id);
+    if (el && data[id] !== undefined) el.value = data[id];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Android 原生桥（WebView 环境下 window.AndroidBridge 由 Kotlin 注入）
+// ═══════════════════════════════════════════════════════════════════
+const NATIVE = typeof window.AndroidBridge !== 'undefined';
+
+window.JSBridge = (() => {
+  const pending = new Map();
+  let seq = 0, notifyFn = null;
+  return {
+    _reg(resolve, reject) {
+      const id = 'c' + (++seq);
+      pending.set(id, { resolve, reject });
+      return id;
+    },
+    onHttpResult(id, code, body) {
+      const p = pending.get(id); if (!p) return; pending.delete(id);
+      (code >= 200 && code < 300) ? p.resolve({ code, body }) : p.reject(new Error(`HTTP ${code}`));
+    },
+    onBleResult(id, st, data) {
+      const p = pending.get(id); if (!p) return; pending.delete(id);
+      st === 'ok' ? p.resolve(data) : p.reject(new Error(data));
+    },
+    onBleNotify(hex) { notifyFn?.(hex); },
+    setNotifyHandler(fn) { notifyFn = fn; },
+  };
+})();
+
+function nativeCall(fn) {
+  return new Promise((res, rej) => fn(window.JSBridge._reg(res, rej)));
+}
+
+async function apiPost(url, headers, bodyObj) {
+  if (NATIVE) {
+    const r = await nativeCall(id =>
+      window.AndroidBridge.httpPost(url, JSON.stringify(headers), JSON.stringify(bodyObj), id)
+    );
+    return JSON.parse(r.body);
+  }
+  const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(bodyObj) });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  环境检测
+// ═══════════════════════════════════════════════════════════════════
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+if (isIOS && !('bluetooth' in navigator)) {
+  showNotice('iOS Safari 不支持 Web Bluetooth API，请使用 Bluefy 或 WebBLE 浏览器打开本页面。');
+}
+if (!NATIVE && location.protocol === 'file:') {
+  showNotice('Web Bluetooth 需要 HTTPS 环境（或 localhost）。请将此页面部署到 HTTPS 服务器后再使用。');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  日志
+// ═══════════════════════════════════════════════════════════════════
+function log(msg, type = 'info') {
+  const ul = document.getElementById('logList');
+  if (ul.children.length === 1 && ul.children[0].className === '') ul.innerHTML = '';
+  const li = document.createElement('li');
+  li.className = type;
+  li.textContent = `[${new Date().toTimeString().slice(0,8)}] ${msg}`;
+  ul.prepend(li);
+  while (ul.children.length > 30) ul.removeChild(ul.lastChild);
+}
+function clearLog() { document.getElementById('logList').innerHTML = '<li>等待操作...</li>'; }
+function showNotice(msg) {
+  const el = document.getElementById('notice');
+  el.textContent = msg; el.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  按钮状态
+// ═══════════════════════════════════════════════════════════════════
+let busy = false;
+
+function setBtnState(state) {
+  const btn   = document.getElementById('lockBtn');
+  const icon  = document.getElementById('btnIcon');
+  const label = document.getElementById('btnLabel');
+  btn.className = state === 'idle' ? '' : state;
+  if (state === 'idle')    { icon.innerHTML = '&#x1F512;'; label.textContent = '开  锁'; }
+  if (state === 'busy')    { icon.innerHTML = '&#x1F4E1;'; label.textContent = '连接中…'; }
+  if (state === 'success') { icon.innerHTML = '&#x1F513;'; label.textContent = '已开锁'; }
+  if (state === 'closed')  { icon.innerHTML = '&#x1F512;'; label.textContent = '已关锁'; setTimeout(() => setBtnState('idle'), 3000); }
+  if (state === 'error')   { icon.innerHTML = '&#x26A0;';  label.textContent = '失  败'; setTimeout(() => setBtnState('idle'), 3000); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  工具函数
+// ═══════════════════════════════════════════════════════════════════
+const delay = ms => new Promise(r => setTimeout(r, ms));
+function pad2(n) { return String(n).padStart(2, '0'); }
+function pad3(n) { return String(n).padStart(3, '0'); }
+function hexToBytes(hex) {
+  const b = new Uint8Array(hex.length >> 1);
+  for (let i = 0; i < b.length; i++) b[i] = parseInt(hex.slice(i*2, i*2+2), 16);
+  return b;
+}
+function bytesToHex(buf) {
+  return Array.from(buf).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MD5（返回 16 字节 Uint8Array）
+// ═══════════════════════════════════════════════════════════════════
+function md5(input) {
+  const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  const T = [];
+  for (let i = 0; i < 64; i++) T[i] = (Math.abs(Math.sin(i+1)) * 0x100000000) >>> 0;
+  const len = input.length;
+  let padLen = 56 - (len % 64);
+  if (padLen <= 0) padLen += 64;
+  const padded = new Uint8Array(len + padLen + 8);
+  padded.set(input); padded[len] = 0x80;
+  const bl = len * 8;
+  for (let i = 0; i < 4; i++) padded[len + padLen + i] = (bl >>> (i*8)) & 0xff;
+  const dv = new DataView(padded.buffer);
+  let a0=0x67452301, b0=0xefcdab89, c0=0x98badcfe, d0=0x10325476;
+  for (let off = 0; off < padded.length; off += 64) {
+    const M = Array.from({length:16}, (_,j) => dv.getUint32(off + j*4, true));
+    let A=a0, B=b0, C=c0, D=d0;
+    for (let j = 0; j < 64; j++) {
+      let F, g;
+      if      (j < 16) { F=(B&C)|(~B&D); g=j; }
+      else if (j < 32) { F=(D&B)|(~D&C); g=(5*j+1)%16; }
+      else if (j < 48) { F=B^C^D;        g=(3*j+5)%16; }
+      else             { F=C^(B|~D);     g=(7*j)%16; }
+      F=(F+A+T[j]+M[g])>>>0; A=D; D=C; C=B;
+      const r=S[j]; B=(B+((F<<r)|(F>>>(32-r))))>>>0;
+    }
+    a0=(a0+A)>>>0; b0=(b0+B)>>>0; c0=(c0+C)>>>0; d0=(d0+D)>>>0;
+  }
+  const out=new Uint8Array(16), ov=new DataView(out.buffer);
+  ov.setUint32(0,a0,true); ov.setUint32(4,b0,true);
+  ov.setUint32(8,c0,true); ov.setUint32(12,d0,true);
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CRC-16
+// ═══════════════════════════════════════════════════════════════════
+function reverseBits16(v) { let o=0; for(let i=0;i<16;i++) if(v&(1<<i)) o|=(1<<(15-i)); return o&0xffff; }
+function reverseBits8(v)  { let o=0; for(let i=0;i<8;i++)  if(v&(1<<i)) o|=(1<<(7-i));  return o&0xff;   }
+function crc16(buf) {
+  let crc=0;
+  for (const b of buf) {
+    crc ^= (reverseBits8(b) << 8);
+    for (let i=0; i<8; i++) crc = (crc & 0x8000) ? ((crc<<1)^0x1021)&0xffff : (crc<<1)&0xffff;
+  }
+  return reverseBits16(crc);
+}
+function appendBytes(a, b) { const o=new Uint8Array(a.length+b.length); o.set(a); o.set(b,a.length); return o; }
+
+function verifyFrame(frame) {
+  if (frame.length < 12) return false;
+  if (frame[0]!==0xaa||frame[1]!==0x11||frame[2]!==0x77||frame[3]!==0xdd) return false;
+  const dv = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
+  const dataLen = dv.getUint16(4, false);
+  const total = 6 + dataLen + 2;
+  if (total !== frame.length) return false;
+  return dv.getUint16(total-2, false) === crc16(frame.slice(0, total-2));
+}
+function extractFrames(buf) {
+  const frames=[]; let i=0;
+  while (i+8 <= buf.length) {
+    if (!(buf[i]===0xaa&&buf[i+1]===0x11&&buf[i+2]===0x77&&buf[i+3]===0xdd)) { i++; continue; }
+    if (i+6 > buf.length) break;
+    const dv = new DataView(buf.buffer, buf.byteOffset+i, buf.length-i);
+    const dataLen = dv.getUint16(4,false);
+    const total = 6+dataLen+2;
+    if (i+total > buf.length) break;
+    frames.push(buf.slice(i, i+total));
+    i += total;
+  }
+  return { frames, rest: buf.slice(i) };
+}
+
+let seq = 0;
+function nextSeq() { seq=(seq+1)&0xffff; if(seq===0) seq=1; return seq; }
+
+// ═══════════════════════════════════════════════════════════════════
+//  数据包构建
+// ═══════════════════════════════════════════════════════════════════
+function pack(cmdId, payload = new Uint8Array(0)) {
+  const buf  = new Uint8Array(10 + payload.length + 2);
+  const view = new DataView(buf.buffer);
+  buf[0]=0xaa; buf[1]=0x11; buf[2]=0x77; buf[3]=0xdd;
+  view.setUint16(4, payload.length+4, false);
+  view.setUint16(6, cmdId, false);
+  view.setUint16(8, nextSeq(), false);
+  buf.set(payload, 10);
+  view.setUint16(10+payload.length, crc16(buf.slice(0, 10+payload.length)), false);
+  return buf;
+}
+function buildGetTokenReq() { return pack(0x0001); }
+
+function buildOpenLockReq(token, cfg, actionIncation=1) {
+  const newFw  = isNewFirmware(cfg.hardVersion);
+  const payload = new Uint8Array(newFw ? 140 : 83);
+  const pv      = new DataView(payload.buffer);
+  const enc     = s => new TextEncoder().encode(s);
+  pv.setUint16(0, actionIncation, false);
+  payload.set(enc(cfg.loginName).slice(0,18), 2);
+  payload.set(enc(cfg.expireTime).slice(0,10), 20);
+  payload.set(enc(cfg.createTime).slice(0,10), 30);
+  pv.setUint16(40, cfg.adminFlag, false);
+  const keyBytes = hexToBytes(cfg.keyId);
+  const mi = new Uint8Array(keyBytes.length + token.length);
+  mi.set(keyBytes); mi.set(token, keyBytes.length);
+  payload.set(md5(mi), 42);
+  const now = new Date();
+  const ts  = String(now.getFullYear()) +
+    pad2(now.getMonth()+1) + pad2(now.getDate()) +
+    pad2(now.getHours())   + pad2(now.getMinutes()) +
+    pad2(now.getSeconds()) + pad3(now.getMilliseconds());
+  payload.set(enc(ts.slice(0,17)), 58);
+  pv.setUint16(75, cfg.isReverse, false);
+  pv.setUint16(77, cfg.delayRestore, false);
+  pv.setUint16(79, cfg.motorOpen, false);
+  pv.setUint16(81, cfg.motorClose, false);
+  if (newFw) {
+    payload.set(enc(cfg.serverAddress).slice(0,37), 83);
+    pv.setUint16(136, 0, false);
+    pv.setUint16(138, cfg.openReverseType, false);
+  }
+  return pack(0x000D, payload);
+}
+function isNewFirmware(v) {
+  const p = (v||'').split('.');
+  return p.length >= 5 && p[p.length-1] > '200629';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  BLE UUID 表
+// ═══════════════════════════════════════════════════════════════════
+const UUID_TABLE = {
+  TI: { service:'f000c0e0-0451-4000-b000-000000000000', write:'f000c0e1-0451-4000-b000-000000000000', read:'f000c0e2-0451-4000-b000-000000000000' },
+  ZG: { service:'0000fff0-0000-1000-8000-00805f9b34fb', write:'0000fff2-0000-1000-8000-00805f9b34fb', read:'0000fff1-0000-1000-8000-00805f9b34fb' },
+};
+function detectPcbType(name) { return (name.includes('TMC_')||name.includes('TP_')) ? 'ZG' : 'TI'; }
+
+async function writeChar(ch, data) {
+  if (typeof ch.writeValue === 'function') return ch.writeValue(data);
+  if (typeof ch.writeValueWithoutResponse === 'function') return ch.writeValueWithoutResponse(data);
+  throw new Error('当前特征不支持写入');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  工具：统一设备名称格式
+// ═══════════════════════════════════════════════════════════════════
+function normalizeName(name) {
+  return (name||'').toUpperCase().replace('BLDLOCK','BLELOCK').replace('CLELOCK','BLELOCK');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Web Bluetooth：后台扫描（requestLEScan，实验性）
+// ═══════════════════════════════════════════════════════════════════
+function scanForDevice(targetId) {
+  return new Promise((resolve, reject) => {
+    let scan=null, settled=false;
+    function settle(fn, val) {
+      if (settled) return; settled=true;
+      clearTimeout(timer);
+      navigator.bluetooth.removeEventListener('advertisementreceived', onAdv);
+      if (scan) { try { scan.stop(); } catch(_) {} }
+      fn(val);
+    }
+    const timer = setTimeout(() => settle(reject, new Error('SCAN_TIMEOUT')), 10000);
+    function onAdv(evt) {
+      const name = normalizeName(evt.device.name);
+      if (evt.device.name) log(`发现: ${evt.device.name}`, 'info');
+      if (name === targetId) { log(`自动匹配成功: ${evt.device.name}`, 'success'); settle(resolve, evt.device); }
+    }
+    navigator.bluetooth.addEventListener('advertisementreceived', onAdv);
+    navigator.bluetooth.requestLEScan({
+      filters:[{namePrefix:'BLELOCK'},{namePrefix:'BLDLOCK'},{namePrefix:'TMC_'},{namePrefix:'TP_'},{namePrefix:'CLE'},{namePrefix:'BLEGAWA'},{namePrefix:'BLEMOZU'}],
+      keepRepeatedDevices:false,
+    }).then(s => { scan=s; }).catch(e => { settle(reject,e); });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Web Bluetooth：自动搜索并匹配设备（三级策略）
+// ═══════════════════════════════════════════════════════════════════
+async function autoFindDevice(targetId, scanAll) {
+  const optSvc = [UUID_TABLE.TI.service, UUID_TABLE.ZG.service];
+  if (!scanAll) {
+    if (typeof navigator.bluetooth.getDevices === 'function') {
+      try {
+        const permitted = await navigator.bluetooth.getDevices();
+        log(`已授权设备 ${permitted.length} 个，检查匹配...`, 'info');
+        for (const d of permitted) {
+          if (normalizeName(d.name) === targetId) { log(`直接连接已授权设备: ${d.name}`, 'success'); return d; }
+        }
+        if (permitted.length > 0) log('已授权设备中无匹配，继续扫描...', 'warn');
+      } catch(_) {}
+    }
+    if (typeof navigator.bluetooth.requestLEScan === 'function') {
+      try {
+        log(`后台扫描中，目标: ${targetId}...`, 'info');
+        return await scanForDevice(targetId);
+      } catch(e) {
+        const safe = e.message==='SCAN_TIMEOUT'||e.name==='NotSupportedError'||e.name==='SecurityError';
+        if (!safe) throw e;
+        log(e.message==='SCAN_TIMEOUT' ? '10s 内未发现目标，切换到手动选择...' : '扫描 API 不可用，切换到手动选择...', 'warn');
+      }
+    }
+  }
+  log(scanAll ? '展示全部设备供选择...' : `弹出选择器（精确匹配 ${targetId}）...`, 'info');
+  try {
+    const opts = scanAll
+      ? { acceptAllDevices:true, optionalServices:optSvc }
+      : { filters:[{name:targetId},{namePrefix:'BLELOCK'},{namePrefix:'BLDLOCK'},{namePrefix:'TMC_'},{namePrefix:'TP_'},{namePrefix:'CLE'},{namePrefix:'BLEGAWA'},{namePrefix:'BLEMOZU'},{services:[UUID_TABLE.TI.service]},{services:[UUID_TABLE.ZG.service]}], optionalServices:optSvc };
+    return await navigator.bluetooth.requestDevice(opts);
+  } catch(e) {
+    if (e.name==='NotFoundError') throw new Error('未选择设备');
+    throw e;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  开锁协议核心（通用，供两条路径复用）
+// ═══════════════════════════════════════════════════════════════════
+async function runLockProtocol(cfg, writeFunc, waiters) {
+  function addWaiter(cmdId, cb) { const l=waiters.get(cmdId)||[]; l.push(cb); waiters.set(cmdId,l); }
+  function removeWaiter(cmdId, cb) {
+    const l=waiters.get(cmdId); if(!l) return;
+    const i=l.indexOf(cb); if(i>=0) l.splice(i,1); if(!l.length) waiters.delete(cmdId);
+  }
+  function waitCmd(cmdId, ms) {
+    return new Promise((res,rej) => {
+      const onF = f => { clearTimeout(t); removeWaiter(cmdId,onF); res(f); };
+      const t = setTimeout(() => { removeWaiter(cmdId,onF); rej(new Error('timeout')); }, ms);
+      addWaiter(cmdId, onF);
+    });
+  }
+
+  // GetToken
+  log('请求 Token...', 'info');
+  let tokenFrame = null;
+  for (let a=1; a<=4; a++) {
+    const req = buildGetTokenReq();
+    console.log('TX GetTokenReq', bytesToHex(req));
+    await writeFunc(req);
+    try { tokenFrame = await waitCmd(0xf001, a===1?6500:4200); break; }
+    catch(_) {
+      if (a===4) throw new Error('多次请求后仍未收到 Token（设备无响应）');
+      log(`第 ${a} 次请求 Token 超时，重试中...`, 'warn'); await delay(260);
+    }
+  }
+  const tokenDv = new DataView(tokenFrame.buffer, tokenFrame.byteOffset, tokenFrame.byteLength);
+  if (tokenDv.getUint16(10,false) !== 0)
+    throw new Error(`Token 响应异常 0x${tokenDv.getUint16(10,false).toString(16).padStart(4,'0').toUpperCase()}`);
+  const token = tokenFrame.slice(12, 28);
+  log(`Token: ${bytesToHex(token).slice(0,8)}...`, 'info');
+
+  // OpenLock
+  log('发送开锁指令...', 'info');
+  const openReq = buildOpenLockReq(token, cfg, 1);
+  console.log('TX OpenLockReq', bytesToHex(openReq));
+  await writeFunc(openReq);
+  let status = null;
+  try { const f=await waitCmd(0xf00d,5000); status=new DataView(f.buffer,f.byteOffset,f.byteLength).getUint16(10,false); }
+  catch(_) { status=null; }
+  if (status!==null && status!==0)
+    throw new Error(`开锁失败，错误码 0x${status.toString(16).toUpperCase().padStart(4,'0')}`);
+  log(status===null?'开锁指令已发送（无响应确认）':'开锁成功！', status===null?'warn':'success');
+  setBtnState('success');
+
+  // 倒计时
+  const holdSecs = (cfg.unlockHoldSeconds > 0) ? cfg.unlockHoldSeconds : 10;
+  const lbl = document.getElementById('btnLabel');
+  for (let i=holdSecs; i>0; i--) { lbl.textContent=`${i} 秒后关锁`; await delay(1000); }
+
+  // AutoClose
+  log('自动关锁中...', 'info');
+  setBtnState('busy');
+  const closeReq = buildOpenLockReq(token, cfg, 2);
+  console.log('TX AutoCloseLockReq', bytesToHex(closeReq));
+  await writeFunc(closeReq);
+  let cs = null;
+  try { const f=await waitCmd(0xf00d,5000); cs=new DataView(f.buffer,f.byteOffset,f.byteLength).getUint16(10,false); }
+  catch(_) { cs=null; }
+  if (cs!==null && cs!==0) {
+    log(`自动关锁失败 0x${cs.toString(16).toUpperCase().padStart(4,'0')}`, 'error'); setBtnState('error');
+  } else {
+    log(cs===null?'关锁指令已发送（无响应确认）':'自动关锁成功！', cs===null?'warn':'success'); setBtnState('closed');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  开锁主流程 — Android 原生 BLE 路径
+// ═══════════════════════════════════════════════════════════════════
+async function doOpenLockNative(cfg) {
+  const targetId = normalizeName(cfg.bluetoothId);
+  log(`目标设备 ID: ${cfg.bluetoothId}`, 'info');
+
+  log(`后台扫描中: ${targetId}...`, 'info');
+  const scanData = await nativeCall(id => window.AndroidBridge.bleScan(targetId, id));
+  const sep = scanData.indexOf('|');
+  const address = scanData.slice(0, sep);
+  const rawName = scanData.slice(sep+1);
+  log(`已发现: ${rawName} [${address}]`, 'success');
+
+  log('正在连接...', 'info');
+  await nativeCall(id => window.AndroidBridge.bleConnect(address, id));
+  log('GATT 已连接', 'info');
+
+  const pcbType  = detectPcbType(normalizeName(rawName));
+  const uuids    = UUID_TABLE[pcbType];
+  const fallback = pcbType==='TI' ? UUID_TABLE.ZG : UUID_TABLE.TI;
+
+  let linked = false;
+  for (const u of [uuids, fallback]) {
+    try {
+      await nativeCall(id => window.AndroidBridge.bleDiscoverSubscribe(u.service, u.write, u.read, id));
+      log(`服务已找到 (${u.service.slice(0,8)}...)`, 'info');
+      linked = true; break;
+    } catch(_) {}
+  }
+  if (!linked) { window.AndroidBridge.bleDisconnect(); throw new Error('找不到兼容的 BLE 服务'); }
+
+  await delay(380);
+
+  let rxBuf = new Uint8Array(0);
+  const waiters = new Map();
+
+  window.JSBridge.setNotifyHandler(hex => {
+    console.log('RX (native)', hex);
+    rxBuf = appendBytes(rxBuf, hexToBytes(hex));
+    const { frames, rest } = extractFrames(rxBuf);
+    rxBuf = rest;
+    for (const frame of frames) {
+      const cmdId = new DataView(frame.buffer, frame.byteOffset, frame.byteLength).getUint16(6,false);
+      const list = waiters.get(cmdId);
+      if (list?.length > 0) { const cb=list.shift(); if(!list.length) waiters.delete(cmdId); cb(frame); }
+    }
+  });
+
+  async function nativeWrite(data) {
+    for (let i=0; i<data.length; i+=20) {
+      await nativeCall(id => window.AndroidBridge.bleWrite(bytesToHex(data.slice(i,i+20)), id));
+      if (i+20 < data.length) await delay(30);
+    }
+  }
+
+  try {
+    await runLockProtocol(cfg, nativeWrite, waiters);
+  } finally {
+    window.JSBridge.setNotifyHandler(null);
+    window.AndroidBridge.bleDisconnect();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  开锁主流程 — Web Bluetooth 路径（浏览器降级）
+// ═══════════════════════════════════════════════════════════════════
+async function doOpenLock(cfg, scanAll=false) {
+  if (!navigator.bluetooth) throw new Error('此浏览器不支持 Web Bluetooth API');
+
+  const targetId = normalizeName(cfg.bluetoothId);
+  log(`目标设备 ID: ${cfg.bluetoothId}`, 'info');
+  const device = await autoFindDevice(targetId, scanAll);
+  log(`已选设备: ${device.name||'未知'}`, 'info');
+
+  log('正在连接...', 'info');
+  const server = await device.gatt.connect();
+
+  const devName  = normalizeName(device.name||'');
+  const pcbType  = detectPcbType(devName);
+  const uuids    = UUID_TABLE[pcbType];
+  const fallback = pcbType==='TI' ? UUID_TABLE.ZG : UUID_TABLE.TI;
+
+  let service, writeCh, readCh;
+  for (const u of [uuids, fallback]) {
+    try {
+      service = await server.getPrimaryService(u.service);
+      writeCh = await service.getCharacteristic(u.write);
+      readCh  = await service.getCharacteristic(u.read);
+      log(`服务已找到 (${u.service.slice(0,8)}...)`, 'info'); break;
+    } catch(_) { service=null; }
+  }
+  if (!service) { device.gatt.disconnect(); throw new Error('找不到兼容的 BLE 服务'); }
+
+  log('订阅通知特征...', 'info');
+  await readCh.startNotifications();
+  await delay(380);
+
+  let rxBuf = new Uint8Array(0);
+  const waiters = new Map();
+
+  function onNotify(evt) {
+    const dv = evt.target.value;
+    const chunk = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+    console.log('RX chunk', bytesToHex(chunk));
+    rxBuf = appendBytes(rxBuf, chunk);
+    const { frames, rest } = extractFrames(rxBuf);
+    rxBuf = rest;
+    for (const frame of frames) {
+      const cmdId = new DataView(frame.buffer, frame.byteOffset, frame.byteLength).getUint16(6,false);
+      const list = waiters.get(cmdId);
+      if (list?.length > 0) { const cb=list.shift(); if(!list.length) waiters.delete(cmdId); cb(frame); }
+    }
+  }
+  readCh.addEventListener('characteristicvaluechanged', onNotify);
+
+  async function webWrite(data) {
+    for (let i=0; i<data.length; i+=20) {
+      await writeChar(writeCh, data.slice(i,i+20));
+      if (i+20 < data.length) await delay(30);
+    }
+  }
+
+  try {
+    await runLockProtocol(cfg, webWrite, waiters);
+  } finally {
+    readCh.removeEventListener('characteristicvaluechanged', onNotify);
+    if (device.gatt?.connected) device.gatt.disconnect();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  刷新锁配置（登录 + 拉取钥匙信息）
+// ═══════════════════════════════════════════════════════════════════
+async function refreshConfig() {
+  const loginname = document.getElementById('cfg-login').value.trim();
+  if (!loginname) { log('请先填写账号', 'warn'); return; }
+
+  const btn = document.querySelector('.refresh-cfg-btn');
+  btn.disabled = true; btn.textContent = '刷新中…';
+
+  try {
+    const cookiesInput = document.getElementById('cfg-cookies');
+    const buildHeaders = () => {
+      const headers = { 'Content-Type': 'application/json' };
+      const cookie = cookiesInput.value.trim();
+      if (cookie) headers['Cookie'] = cookie.includes('JSESSIONID=') ? cookie : `JSESSIONID=${cookie}`;
+      return headers;
+    };
+
+    log(`刷新登录状态 (${loginname})...`, 'info');
+    const loginResp = await apiPost(
+      'https://csmy.hzcu.edu.cn/csmy/bsframe/business//AppUser!appLogin.do',
+      buildHeaders(), { loginname }
+    );
+    log('登录状态已刷新', 'info');
+
+    const newCookie = loginResp?.jsessionid || loginResp?.JSESSIONID || loginResp?.sessionId || loginResp?.sessionid || loginResp?.cookie;
+    if (newCookie) {
+      const normalized = String(newCookie).replace(/^JSESSIONID=/i, '');
+      cookiesInput.value = normalized;
+      log('已更新会话 Cookie', 'info');
+    }
+
+    log('正在拉取锁配置...', 'info');
+    const data = await apiPost(
+      'https://csmy.hzcu.edu.cn/csmy/bsframe/business/AppLockGrant!appPullDownKeyInfoList.do',
+      buildHeaders(), { statusstr:'0;1;2;3;4;5', page:1, order:'order by keyinfoid desc', rows:20 }
+    );
+
+    if (data.result !== 'success') {
+      throw new Error(data.message || data.msg || data.error || `锁配置拉取失败：${JSON.stringify(data)}`);
+    }
+    if (!Array.isArray(data.list) || data.list.length === 0) {
+      throw new Error(`当前账号没有可用的锁配置。后端返回：${JSON.stringify({ result: data.result, total: data.total, count: data.count, message: data.message || data.msg || '' })}`);
+    }
+
+    const item = data.list[0];
+    document.getElementById('cfg-btid').value   = item.bluetoothid || '';
+    document.getElementById('cfg-keyid').value  = item.keyid       || '';
+    document.getElementById('cfg-expire').value = item.expiretime  || '';
+    document.getElementById('cfg-create').value = item.createtime  || '';
+    log(`蓝牙ID:   ${item.bluetoothid}`,  'success');
+    log(`Key ID:   ${item.keyid}`,         'success');
+    log(`到期时间: ${item.expiretime}`,    'success');
+    log(`创建时间: ${item.createtime}`,    'success');
+    log('配置已更新', 'success');
+    saveConfig();
+  } catch(e) {
+    log(e.message || String(e), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '↻  刷新配置';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  按钮点击入口
+// ═══════════════════════════════════════════════════════════════════
+async function handleClick(scanAll=false) {
+  if (busy) return;
+  busy = true;
+  setBtnState('busy');
+
+  const cfg = {
+    bluetoothId:     document.getElementById('cfg-btid').value.trim().toUpperCase(),
+    keyId:           document.getElementById('cfg-keyid').value.trim().toLowerCase(),
+    loginName:       document.getElementById('cfg-login').value.trim(),
+    expireTime:      document.getElementById('cfg-expire').value.trim(),
+    createTime:      document.getElementById('cfg-create').value.trim(),
+    unlockHoldSeconds: parseInt(document.getElementById('cfg-delay').value, 10) || 10,
+    adminFlag:       0,
+    hardVersion:     '2.1.xy.N18.220428',
+    isReverse:       0,
+    delayRestore:    0,
+    motorOpen:       0,
+    motorClose:      0,
+    openReverseType: 0,
+    serverAddress:   'csmy.hzcu.edu.cn',
+  };
+
+  try {
+    if (NATIVE) {
+      await doOpenLockNative(cfg);
+    } else {
+      await doOpenLock(cfg, scanAll);
+    }
+  } catch(e) {
+    log(e.message || String(e), 'error');
+    setBtnState('error');
+  } finally {
+    busy = false;
+  }
+}
+// ═══════════════════════════════════════════════════════════════════
+//  初始化：加载持久化配置，监听输入变化自动保存
+// ═══════════════════════════════════════════════════════════════════
+(function init() {
+  loadConfig();
+  let saveTimer = null;
+  for (const id of CFG_FIELDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveConfig, 600);
+    });
+    el.addEventListener('change', saveConfig);
+  }
+})();
+</script>
+</body>
+</html>
