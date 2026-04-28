@@ -1,6 +1,6 @@
 # AndroidBLELock
 
-<p align="right">Language: [English](#english) | [中文](README.zh-CN.md)</p>
+<p align="right">Language: <a href="#english">English</a> | <a href="README.zh-CN.md">中文</a></p>
 
 <a name="english"></a>
 ## English
