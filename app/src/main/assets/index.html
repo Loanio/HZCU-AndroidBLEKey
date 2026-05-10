@@ -17,6 +17,7 @@
       --success: #22c55e;
       --warn:    #f59e0b;
       --error:   #ef4444;
+      --tab-h:   56px;
     }
 
     body {
@@ -24,15 +25,43 @@
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
       min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px 16px 40px;
+      padding-bottom: var(--tab-h);
+      overflow-x: hidden;
     }
 
-    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .04em; color: var(--text); margin-bottom: 4px; }
-    .subtitle { font-size: .78rem; color: var(--muted); margin-bottom: 28px; }
+    /* ── Tab bar ── */
+    .tab-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--tab-h);
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px; background: none; border: none; color: var(--muted); cursor: pointer;
+      -webkit-tap-highlight-color: transparent; font-family: inherit; padding: 4px 0;
+      transition: color .15s;
+    }
+    .tab-btn.active { color: var(--accent); }
+    .tab-icon { font-size: 1.25rem; line-height: 1; }
+    .tab-label { font-size: .6rem; font-weight: 600; letter-spacing: .03em; }
 
+    /* ── Pages ── */
+    .page {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 24px;
+      min-height: calc(100dvh - var(--tab-h));
+    }
+    .page.active { display: flex; }
+
+    h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: .04em; color: var(--text); margin-bottom: 3px; }
+    .subtitle { font-size: .76rem; color: var(--muted); margin-bottom: 18px; }
+
+    /* ── Cards ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -40,12 +69,18 @@
       padding: 16px;
       width: 100%;
       max-width: 400px;
-      margin-bottom: 28px;
+      margin-bottom: 14px;
     }
     .card-title {
-      font-size: .7rem; font-weight: 600; color: var(--muted);
+      font-size: .68rem; font-weight: 600; color: var(--muted);
       text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
     }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .card-header .card-title { margin-bottom: 0; }
+
+    /* ── Form fields ── */
     .field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .field:last-child { margin-bottom: 0; }
     .field label { font-size: .75rem; color: var(--muted); width: 80px; flex-shrink: 0; }
@@ -56,15 +91,68 @@
     }
     .field input:focus { border-color: var(--accent); }
 
+    /* ── Buttons ── */
     .refresh-cfg-btn {
-      display: block; width: 100%; margin-top: 12px; background: none;
-      border: 1px solid var(--border); border-radius: 8px; color: var(--muted);
-      font-size: .75rem; padding: 7px 0; cursor: pointer;
-      -webkit-tap-highlight-color: transparent; transition: color .15s, border-color .15s;
+      display: block; width: 100%; margin-top: 12px;
+      background: var(--accent); border: none; border-radius: 8px; color: #fff;
+      font-size: .82rem; font-weight: 600; padding: 10px 0; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: opacity .15s;
+      letter-spacing: .03em;
     }
-    .refresh-cfg-btn:hover, .refresh-cfg-btn:active { color: var(--text); border-color: var(--accent); }
+    .refresh-cfg-btn:active { opacity: .75; }
+    .refresh-cfg-btn:disabled { opacity: .5; }
 
-    .btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .icon-btn {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 1rem; padding: 4px 6px; border-radius: 6px;
+      -webkit-tap-highlight-color: transparent; transition: color .15s;
+    }
+    .icon-btn:hover, .icon-btn:active { color: var(--text); }
+
+    .link-btn {
+      background: none; border: none; color: var(--accent); cursor: pointer;
+      font-size: .75rem; padding: 2px 6px; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-primary {
+      display: block; width: 100%; margin-top: 14px;
+      background: var(--accent); border: none; border-radius: 10px;
+      color: #fff; font-size: .9rem; font-weight: 600; padding: 12px 0;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity .15s;
+    }
+    .btn-primary:active { opacity: .8; }
+
+    /* ── 关锁延迟卡片 ── */
+    .delay-card-inner {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .delay-card-inner .delay-label { font-size: .82rem; color: var(--text); font-weight: 500; }
+    .delay-card-inner .delay-hint  { font-size: .68rem; color: var(--muted); margin-top: 2px; }
+    .delay-stepper {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .stepper-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 1.2rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s, color .15s; flex-shrink: 0;
+      user-select: none;
+    }
+    .stepper-btn:active { border-color: var(--accent); color: var(--accent); }
+    .delay-display {
+      font-size: 1.5rem; font-weight: 700; color: var(--accent);
+      min-width: 52px; text-align: center; line-height: 1;
+    }
+    .delay-display-unit { font-size: .75rem; color: var(--muted); font-weight: 400; }
+    /* 隐藏原生 number input，保留用于持久化 */
+    #cfg-delay { display: none; }
+
+    /* ── Lock button ── */
+    .btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 14px; }
 
     .scan-all-btn {
       background: none; border: 1px solid var(--border); border-radius: 20px;
@@ -95,6 +183,63 @@
     #lockBtn.success .btn-icon { transform: scale(1.15); }
     .btn-label { font-size: .85rem; font-weight: 600; letter-spacing: .05em; }
 
+    /* ── Info panel ── */
+    .info-content { display: flex; flex-direction: column; gap: 7px; }
+    .info-row { display: flex; align-items: baseline; gap: 8px; }
+    .info-key { font-size: .71rem; color: var(--muted); min-width: 68px; flex-shrink: 0; }
+    .info-val { font-size: .82rem; color: var(--text); word-break: break-all; }
+    .info-empty { font-size: .78rem; color: var(--muted); text-align: center; padding: 8px 0; width: 100%; }
+
+    /* ── Active key card ── */
+    .active-key-name { font-size: .88rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .active-key-sub  { font-size: .72rem; color: var(--muted); font-family: monospace; }
+
+    /* ── Keys page ── */
+    .keys-actions {
+      display: flex; gap: 8px; width: 100%; max-width: 400px; margin-bottom: 14px;
+    }
+    .action-btn {
+      flex: 1; background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); font-size: .76rem; padding: 8px 4px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; font-family: inherit;
+      transition: color .15s, border-color .15s;
+    }
+    .action-btn:hover, .action-btn:active { color: var(--text); border-color: var(--accent); }
+    .action-btn.accent { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+    .keys-list { width: 100%; max-width: 400px; }
+    .key-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 13px; margin-bottom: 10px; cursor: pointer;
+      transition: border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .key-card.active-key { border-color: var(--accent); }
+    .key-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+    .key-card-info { flex: 1; min-width: 0; }
+    .key-card-label { font-size: .86rem; font-weight: 600; color: var(--text); margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .key-card-btid  { font-size: .7rem; color: var(--muted); font-family: monospace; }
+    .key-card-meta  { font-size: .68rem; color: var(--muted); margin-top: 6px; }
+    .key-card-actions { display: flex; gap: 2px; flex-shrink: 0; margin-left: 6px; }
+    .key-action-btn {
+      background: none; border: none; color: var(--muted); font-size: .88rem;
+      padding: 4px 6px; cursor: pointer; border-radius: 6px;
+      -webkit-tap-highlight-color: transparent; transition: color .15s;
+    }
+    .key-action-btn:active { color: var(--text); }
+    .key-action-btn.del:active { color: var(--error); }
+    .active-badge {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-size: .58rem; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+      margin-left: 6px; vertical-align: middle; letter-spacing: .04em;
+    }
+    .empty-state {
+      text-align: center; color: var(--muted); font-size: .82rem;
+      padding: 40px 0; line-height: 1.8;
+    }
+
+    /* ── Log card ── */
     .log-card {
       background: var(--card); border: 1px solid var(--border); border-radius: 14px;
       padding: 14px; width: 100%; max-width: 400px;
@@ -103,7 +248,7 @@
     .log-title { font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
     .log-clear { font-size: .68rem; color: var(--muted); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
     .log-clear:hover { color: var(--text); }
-    #logList { list-style: none; max-height: 220px; overflow-y: auto; }
+    #logList { list-style: none; max-height: 420px; overflow-y: auto; }
     #logList li { font-size: .74rem; font-family: monospace; padding: 3px 2px; border-bottom: 1px solid rgba(30,58,95,.6); color: var(--muted); word-break: break-all; }
     #logList li:last-child { border-bottom: none; }
     #logList li.info    { color: #93c5fd; }
@@ -111,69 +256,291 @@
     #logList li.warn    { color: var(--warn); }
     #logList li.error   { color: var(--error); }
 
+    /* ── Modals ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65);
+      z-index: 200; align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px 16px 0 0; width: 100%; max-width: 480px;
+      max-height: 82vh; overflow-y: auto; padding: 20px 16px 36px;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+    /* ── Checkbox list ── */
+    .checkbox-list { display: flex; flex-direction: column; gap: 2px; }
+    .checkbox-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 8px; border-radius: 8px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: background .1s;
+    }
+    .checkbox-item:active { background: rgba(59,130,246,.1); }
+    .checkbox-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+    .checkbox-item .field-label { font-size: .84rem; color: var(--text); }
+    .checkbox-item .field-key   { font-size: .7rem; color: var(--muted); font-family: monospace; margin-left: auto; }
+
+    /* ── 文件操作按钮 ── */
+    .btn-file-action {
+      display: block; width: 100%; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: .9rem; font-weight: 600; padding: 12px 0;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s, color .15s; font-family: inherit;
+    }
+    .btn-file-action:active { border-color: var(--accent); color: var(--accent); }
+
+    /* ── 模态框分隔线 ── */
+    .modal-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 14px 0; color: var(--muted); font-size: .72rem;
+    }
+    .modal-divider::before, .modal-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── Export textarea ── */
+    .export-ta {
+      width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; color: var(--text); font-family: monospace;
+      font-size: .72rem; resize: none; outline: none; margin-top: 8px;
+    }
+    .hint { font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+
+    /* ── Notice ── */
     .notice {
       font-size: .75rem; color: var(--warn); background: rgba(245,158,11,.1);
       border: 1px solid rgba(245,158,11,.25); border-radius: 10px; padding: 10px 14px;
-      width: 100%; max-width: 400px; margin-top: 14px; line-height: 1.5; display: none;
+      width: calc(100% - 32px); max-width: 400px; margin: 10px 16px; line-height: 1.5; display: none;
     }
     .notice.show { display: block; }
   </style>
 </head>
 <body>
 
-  <h1>蓝牙开锁</h1>
-  <p class="subtitle">Web Bluetooth · BLE 智能锁</p>
-
-  <div class="card">
-    <div class="card-title">锁配置</div>
-    <div class="field">
-      <label>账号</label>
-      <input type="text" id="cfg-login"   value="" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Cookies</label>
-      <input type="text" id="cfg-cookies" value="9B308BAAB362EDEB4DFE42EE2006829B" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>蓝牙ID</label>
-      <input type="text" id="cfg-btid"    value="" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Key ID</label>
-      <input type="text" id="cfg-keyid"   value="" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>到期时间</label>
-      <input type="text" id="cfg-expire"  value="" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>创建时间</label>
-      <input type="text" id="cfg-create"  value="" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>关锁延迟(秒)</label>
-      <input type="number" id="cfg-delay" value="10" min="1" max="300" autocomplete="off">
-    </div>
-    <button class="refresh-cfg-btn" onclick="refreshConfig()">&#x21BB;  刷新配置</button>
-  </div>
-
-  <div class="btn-wrap">
-    <button id="lockBtn" onclick="handleClick(false)">
-      <span class="btn-icon" id="btnIcon">&#x1F512;</span>
-      <span class="btn-label" id="btnLabel">开  锁</span>
+  <!-- ── Tab bar ── -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">
+      <span class="tab-icon">🔒</span>
+      <span class="tab-label">主页</span>
     </button>
-    <button class="scan-all-btn" onclick="handleClick(true)">找不到设备？扫描全部</button>
+    <button class="tab-btn" data-tab="config" onclick="switchTab('config')">
+      <span class="tab-icon">⚙</span>
+      <span class="tab-label">配置</span>
+    </button>
+    <button class="tab-btn" data-tab="keys" onclick="switchTab('keys')">
+      <span class="tab-icon">🗝️</span>
+      <span class="tab-label">钥匙</span>
+    </button>
+    <button class="tab-btn" data-tab="dev" onclick="switchTab('dev')">
+      <span class="tab-icon">⌨</span>
+      <span class="tab-label">开发者</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════
+       Page: 主页
+  ══════════════════════════════════════════════ -->
+  <div id="page-home" class="page active">
+    <h1>蓝牙开锁</h1>
+    <p class="subtitle">Web Bluetooth · BLE 智能锁</p>
+
+    <!-- Info panel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">信息面板</span>
+        <button class="icon-btn" onclick="openFieldSelector()" title="设置显示字段">⚙</button>
+      </div>
+      <div id="infoPanelContent" class="info-content">
+        <span class="info-empty">暂无信息，请先在配置页刷新</span>
+      </div>
+    </div>
+
+    <!-- Active key card -->
+    <div class="card" id="activeKeyCard" style="display:none">
+      <div class="card-header">
+        <span class="card-title">当前钥匙</span>
+        <button class="link-btn" onclick="switchTab('keys')">钥匙库 →</button>
+      </div>
+      <div class="active-key-name" id="activeKeyName"></div>
+      <div class="active-key-sub"  id="activeKeySub"></div>
+    </div>
+
+    <!-- 关锁延迟卡片 -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="delay-card-inner">
+        <div>
+          <div class="delay-label">关锁延迟</div>
+          <div class="delay-hint">开锁成功后自动关锁等待时间</div>
+        </div>
+        <div class="delay-stepper">
+          <button class="stepper-btn" onclick="stepDelay(-1)">−</button>
+          <div class="delay-display">
+            <span id="delayDisplay">5</span><br>
+            <span class="delay-display-unit">秒</span>
+          </div>
+          <button class="stepper-btn" onclick="stepDelay(1)">＋</button>
+        </div>
+      </div>
+      <input type="number" id="cfg-delay" value="5" min="1" max="300" autocomplete="off">
+    </div>
+
+    <!-- Lock button -->
+    <div class="btn-wrap">
+      <button id="lockBtn" onclick="handleClick(false)">
+        <span class="btn-icon" id="btnIcon">&#x1F512;</span>
+        <span class="btn-label" id="btnLabel">开  锁</span>
+      </button>
+      <button class="scan-all-btn" onclick="handleClick(true)">找不到设备？扫描全部</button>
+    </div>
   </div>
 
-  <div class="log-card">
-    <div class="log-header">
-      <span class="log-title">操作日志</span>
-      <button class="log-clear" onclick="clearLog()">清除</button>
+  <!-- ══════════════════════════════════════════════
+       Page: 配置
+  ══════════════════════════════════════════════ -->
+  <div id="page-config" class="page">
+    <h1>锁配置</h1>
+    <p class="subtitle">点击“刷新配置”拉取账号对应的钥匙</p>
+
+    <div class="card">
+      <div class="card-title">账号</div>
+      <div class="field">
+        <label>账号</label>
+        <input type="text" id="cfg-login" value="" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Cookies</label>
+        <input type="text" id="cfg-cookies" value="9B308BAAB362EDEB4DFE42EE2006829B" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="refresh-cfg-btn" onclick="refreshConfig()">&#x21BB;  刷新配置</button>
     </div>
-    <ul id="logList"><li>等待操作...</li></ul>
+
+    <div class="card">
+      <div class="card-title">钥匙参数</div>
+      <div class="field">
+        <label>蓝牙ID</label>
+        <input type="text" id="cfg-btid" value="" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>Key ID</label>
+        <input type="text" id="cfg-keyid" value="" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>到期时间</label>
+        <input type="text" id="cfg-expire" value="" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>创建时间</label>
+        <input type="text" id="cfg-create" value="" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Page: 钥匙库
+  ══════════════════════════════════════════════ -->
+  <div id="page-keys" class="page">
+    <h1>钥匙库</h1>
+    <p class="subtitle">管理已保存的钥匙配置</p>
+
+    <div class="keys-actions">
+      <button class="action-btn" onclick="importKeys()">📥 导入</button>
+      <button class="action-btn" onclick="exportKeys()">📤 导出</button>
+    </div>
+
+    <div id="keysList" class="keys-list">
+      <div class="empty-state">暂无保存的钥匙<br>刷新配置可自动保存新钥匙</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Page: 开发者
+  ══════════════════════════════════════════════ -->
+  <div id="page-dev" class="page">
+    <h1>开发者</h1>
+    <p class="subtitle">调试日志</p>
+    <div class="log-card">
+      <div class="log-header">
+        <span class="log-title">操作日志</span>
+        <button class="log-clear" onclick="clearLog()">清除</button>
+      </div>
+      <ul id="logList"><li>等待操作...</li></ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Modal: 信息字段选择器
+  ══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="fieldSelectorModal" onclick="closeFieldSelector()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">选择信息面板字段</span>
+        <button class="icon-btn" onclick="closeFieldSelector()">✕</button>
+      </div>
+      <div id="fieldCheckboxList" class="checkbox-list"></div>
+      <button class="btn-primary" onclick="saveFieldSelection()">确认</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Modal: 钥匙编辑器
+  ══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="keyEditorModal" onclick="closeKeyEditor()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" id="keyEditorTitle">钥匙详情</span>
+        <button class="icon-btn" onclick="closeKeyEditor()">✕</button>
+      </div>
+      <div class="field"><label>备注名</label><input type="text" id="edit-label" placeholder="自定义名称" autocomplete="off"></div>
+      <div class="field"><label>蓝牙ID</label><input type="text" id="edit-btid" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>Key ID</label><input type="text" id="edit-keyid" autocomplete="off" spellcheck="false" style="font-size:.68rem"></div>
+      <div class="field"><label>到期时间</label><input type="text" id="edit-expire" autocomplete="off"></div>
+      <div class="field"><label>创建时间</label><input type="text" id="edit-create" autocomplete="off"></div>
+      <div class="field"><label>账号</label><input type="text" id="edit-login" autocomplete="off"></div>
+      <button class="btn-primary" onclick="saveKeyEdit()">保存</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Modal: 导出
+  ══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="exportModal" onclick="closeExportModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">导出钥匙配置</span>
+        <button class="icon-btn" onclick="closeExportModal()">✕</button>
+      </div>
+      <button class="btn-file-action" onclick="downloadExportFile()">💾 保存为 JSON 文件</button>
+      <div class="modal-divider"><span>或</span></div>
+      <p class="hint">长按下方文本全选复制</p>
+      <textarea class="export-ta" id="exportTextarea" readonly></textarea>
+      <button class="btn-primary" onclick="copyExportText()">📋 复制到剪贴板</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       Modal: 导入
+  ══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="importModal" onclick="closeImportModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">导入钥匙配置</span>
+        <button class="icon-btn" onclick="closeImportModal()">✕</button>
+      </div>
+      <button class="btn-file-action" onclick="triggerFileImport()">📁 从文件导入</button>
+      <div class="modal-divider"><span>或</span></div>
+      <p class="hint">将钥匙配置 JSON 粘贴到下方</p>
+      <textarea class="export-ta" id="importTextarea" placeholder='{"keys":[...]}' style="height:140px"></textarea>
+      <button class="btn-primary" onclick="importFromText()">确认导入</button>
+    </div>
   </div>
 
   <div class="notice" id="notice"></div>
+  <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(event)">
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
@@ -265,7 +632,7 @@ function log(msg, type = 'info') {
   li.className = type;
   li.textContent = `[${new Date().toTimeString().slice(0,8)}] ${msg}`;
   ul.prepend(li);
-  while (ul.children.length > 30) ul.removeChild(ul.lastChild);
+  while (ul.children.length > 60) ul.removeChild(ul.lastChild);
 }
 function clearLog() { document.getElementById('logList').innerHTML = '<li>等待操作...</li>'; }
 function showNotice(msg) {
@@ -725,6 +1092,321 @@ async function doOpenLock(cfg, scanAll=false) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  ▌ 信息面板
+// ═══════════════════════════════════════════════════════════════════
+const INFO_DATA_KEY   = 'ble_info_data';
+const INFO_FIELDS_KEY = 'ble_info_fields';
+
+const AVAILABLE_FIELDS = [
+  { key: 'username',     label: '用户名' },
+  { key: 'loginname',    label: '账号' },
+  { key: 'roomcode',     label: '房间号' },
+  { key: 'usercode',     label: '用户编号' },
+  { key: 'mobilephone',  label: '手机' },
+  { key: 'fixphone',     label: '座机' },
+  { key: 'homeaddress',  label: '家庭地址' },
+  { key: 'houseaddress', label: '宿舍地址' },
+  { key: 'isonline',     label: '在线状态' },
+  { key: 'isrealname',   label: '实名认证' },
+  { key: 'viplevel',     label: 'VIP 等级' },
+  { key: 'vipenddate',   label: 'VIP 到期' },
+  { key: 'canusemoney',  label: '余额' },
+  { key: 'totalpoints',  label: '积分' },
+  { key: 'createtime',   label: '账号创建' },
+  { key: 'modifytime',   label: '最后更新' },
+  { key: 'description',  label: '备注' },
+];
+
+let infoPanelData      = null;
+let selectedInfoFields = ['username', 'roomcode'];
+
+function loadInfoPanelSettings() {
+  try { const d = localStorage.getItem(INFO_DATA_KEY);   if (d) infoPanelData      = JSON.parse(d); } catch(_) {}
+  try { const f = localStorage.getItem(INFO_FIELDS_KEY); if (f) selectedInfoFields = JSON.parse(f); } catch(_) {}
+}
+
+function saveInfoPanelSettings() {
+  try { if (infoPanelData) localStorage.setItem(INFO_DATA_KEY, JSON.stringify(infoPanelData)); } catch(_) {}
+  try { localStorage.setItem(INFO_FIELDS_KEY, JSON.stringify(selectedInfoFields)); } catch(_) {}
+}
+
+function renderInfoPanel() {
+  const el = document.getElementById('infoPanelContent');
+  if (!infoPanelData || selectedInfoFields.length === 0) {
+    el.innerHTML = '<span class="info-empty">暂无信息，请先在配置页刷新</span>';
+    return;
+  }
+  el.innerHTML = selectedInfoFields.map(k => {
+    const meta    = AVAILABLE_FIELDS.find(f => f.key === k);
+    const val     = infoPanelData[k];
+    const display = (val === null || val === undefined || val === '') ? '—' : String(val);
+    return `<div class="info-row"><span class="info-key">${meta ? meta.label : k}</span><span class="info-val">${display}</span></div>`;
+  }).join('');
+}
+
+function openFieldSelector() {
+  const list = document.getElementById('fieldCheckboxList');
+  list.innerHTML = AVAILABLE_FIELDS.map(f =>
+    `<label class="checkbox-item">
+      <input type="checkbox" value="${f.key}"${selectedInfoFields.includes(f.key) ? ' checked' : ''}>
+      <span class="field-label">${f.label}</span>
+      <span class="field-key">${f.key}</span>
+    </label>`
+  ).join('');
+  document.getElementById('fieldSelectorModal').classList.add('open');
+}
+
+function closeFieldSelector() {
+  document.getElementById('fieldSelectorModal').classList.remove('open');
+}
+
+function saveFieldSelection() {
+  const checks = document.querySelectorAll('#fieldCheckboxList input[type=checkbox]');
+  selectedInfoFields = Array.from(checks).filter(c => c.checked).map(c => c.value);
+  saveInfoPanelSettings();
+  renderInfoPanel();
+  closeFieldSelector();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ▌ 钥匙管理
+// ═══════════════════════════════════════════════════════════════════
+const KEYS_KEY       = 'ble_lock_keys';
+const ACTIVE_KEY_KEY = 'ble_lock_active';
+
+let savedKeys   = [];
+let activeKeyId = null;
+
+function loadKeys() {
+  try { savedKeys   = JSON.parse(localStorage.getItem(KEYS_KEY)) || []; } catch(_) { savedKeys = []; }
+  try { activeKeyId = localStorage.getItem(ACTIVE_KEY_KEY) || null; }    catch(_) {}
+}
+
+function persistKeys()      { try { localStorage.setItem(KEYS_KEY,       JSON.stringify(savedKeys)); } catch(_) {} }
+function persistActiveKey() { try { localStorage.setItem(ACTIVE_KEY_KEY, activeKeyId || '');         } catch(_) {} }
+
+function autoSaveKey(item, loginname, cookies, appinfo) {
+  if (!item.keyid) return;
+  if (savedKeys.find(k => k.keyid === item.keyid)) return;
+  savedKeys.push({
+    keyid:       item.keyid,
+    label:       '',
+    bluetoothid: item.bluetoothid || '',
+    expiretime:  item.expiretime  || '',
+    createtime:  item.createtime  || '',
+    loginname:   loginname        || '',
+    cookies:     cookies          || '',
+    appinfo:     appinfo          || null,
+    savedAt:     new Date().toISOString(),
+  });
+  persistKeys();
+  renderKeysList();
+  log(`新钥匙已保存: ${item.keyid.slice(0,8)}...`, 'success');
+}
+
+function activateKey(keyid) {
+  activeKeyId = keyid;
+  persistActiveKey();
+  const k = savedKeys.find(k => k.keyid === keyid);
+  if (k) {
+    document.getElementById('cfg-btid').value   = k.bluetoothid || '';
+    document.getElementById('cfg-keyid').value  = k.keyid       || '';
+    document.getElementById('cfg-expire').value = k.expiretime  || '';
+    document.getElementById('cfg-create').value = k.createtime  || '';
+    if (k.loginname) document.getElementById('cfg-login').value   = k.loginname;
+    if (k.cookies)   document.getElementById('cfg-cookies').value = k.cookies;
+    saveConfig();
+    // 同步信息面板：使用该钥匙保存的 appinfo
+    if (k.appinfo) {
+      infoPanelData = k.appinfo;
+      renderInfoPanel();
+    }
+  }
+  renderKeysList();
+  renderActiveKeyCard();
+}
+
+function deleteKey(keyid) {
+  const k    = savedKeys.find(k => k.keyid === keyid);
+  const name = k ? (k.label || k.bluetoothid || keyid.slice(0,8)) : keyid.slice(0,8);
+  if (!confirm(`删除钥匙「${name}」？`)) return;
+  savedKeys = savedKeys.filter(k => k.keyid !== keyid);
+  if (activeKeyId === keyid) { activeKeyId = null; persistActiveKey(); renderActiveKeyCard(); }
+  persistKeys();
+  renderKeysList();
+}
+
+function renderKeysList() {
+  const el = document.getElementById('keysList');
+  if (savedKeys.length === 0) {
+    el.innerHTML = '<div class="empty-state">暂无保存的钥匙<br>刷新配置可自动保存新钥匙</div>';
+    return;
+  }
+  el.innerHTML = savedKeys.map(k => {
+    const isActive = k.keyid === activeKeyId;
+    const label    = k.label || '未命名';
+    const btid     = k.bluetoothid
+      ? (k.bluetoothid.length > 26 ? k.bluetoothid.slice(0,26) + '…' : k.bluetoothid)
+      : '—';
+    const parts = [];
+    if (k.expiretime) parts.push(`到期: ${k.expiretime}`);
+    if (k.savedAt)    parts.push(`存入: ${k.savedAt.slice(0,10)}`);
+    const meta = parts.join(' · ');
+    return `<div class="key-card${isActive ? ' active-key' : ''}" onclick="activateKey('${escHtml(k.keyid)}')">
+      <div class="key-card-top">
+        <div class="key-card-info">
+          <div class="key-card-label">${escHtml(label)}${isActive ? '<span class="active-badge">使用中</span>' : ''}</div>
+          <div class="key-card-btid">${escHtml(btid)}</div>
+        </div>
+        <div class="key-card-actions">
+          <button class="key-action-btn" onclick="event.stopPropagation();openKeyEditor('${escHtml(k.keyid)}')" title="编辑">✏️</button>
+          <button class="key-action-btn del" onclick="event.stopPropagation();deleteKey('${escHtml(k.keyid)}')" title="删除">🗑</button>
+        </div>
+      </div>
+      ${meta ? `<div class="key-card-meta">${escHtml(meta)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderActiveKeyCard() {
+  const card = document.getElementById('activeKeyCard');
+  const k    = activeKeyId ? savedKeys.find(k => k.keyid === activeKeyId) : null;
+  if (!k) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  document.getElementById('activeKeyName').textContent = k.label || k.bluetoothid || '未命名';
+  const sub = [k.bluetoothid, k.expiretime ? `到期: ${k.expiretime}` : ''].filter(Boolean).join(' · ');
+  document.getElementById('activeKeySub').textContent = sub;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Key editor ──
+let editingKeyId = null;
+
+function openKeyEditor(keyid) {
+  editingKeyId = keyid;
+  const k = keyid ? savedKeys.find(k => k.keyid === keyid) : null;
+  document.getElementById('keyEditorTitle').textContent = k ? '编辑钥匙' : '新建钥匙';
+  document.getElementById('edit-label').value  = k?.label       || '';
+  document.getElementById('edit-btid').value   = k?.bluetoothid || '';
+  document.getElementById('edit-keyid').value  = k?.keyid       || '';
+  document.getElementById('edit-expire').value = k?.expiretime  || '';
+  document.getElementById('edit-create').value = k?.createtime  || '';
+  document.getElementById('edit-login').value  = k?.loginname   || '';
+  document.getElementById('keyEditorModal').classList.add('open');
+}
+
+function closeKeyEditor() {
+  document.getElementById('keyEditorModal').classList.remove('open');
+}
+
+function saveKeyEdit() {
+  const keyid = document.getElementById('edit-keyid').value.trim();
+  if (!keyid) { alert('Key ID 不能为空'); return; }
+  // 只包含表单里可编辑的字段
+  const edits = {
+    keyid,
+    label:       document.getElementById('edit-label').value.trim(),
+    bluetoothid: document.getElementById('edit-btid').value.trim(),
+    expiretime:  document.getElementById('edit-expire').value.trim(),
+    createtime:  document.getElementById('edit-create').value.trim(),
+    loginname:   document.getElementById('edit-login').value.trim(),
+  };
+  if (editingKeyId) {
+    const idx = savedKeys.findIndex(k => k.keyid === editingKeyId);
+    if (idx >= 0) {
+      // 展开旧对象，再用表单值覆盖对应字段，appinfo/cookies 等不在表单里的字段自动保留
+      savedKeys[idx] = { ...savedKeys[idx], ...edits };
+    } else {
+      savedKeys.push({ ...edits, savedAt: new Date().toISOString() });
+    }
+  } else {
+    const existing = savedKeys.findIndex(k => k.keyid === keyid);
+    if (existing >= 0) savedKeys[existing] = { ...savedKeys[existing], ...edits };
+    else savedKeys.push({ ...edits, savedAt: new Date().toISOString() });
+  }
+  persistKeys();
+  renderKeysList();
+  closeKeyEditor();
+}
+
+// ── Import / Export ──
+function exportKeys() {
+  if (savedKeys.length === 0) { alert('没有可导出的钥匙'); return; }
+  const json = JSON.stringify({ version: 1, keys: savedKeys }, null, 2);
+  document.getElementById('exportTextarea').value = json;
+  document.getElementById('exportModal').classList.add('open');
+}
+
+function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
+
+function downloadExportFile() {
+  const json = document.getElementById('exportTextarea').value;
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `ble_keys_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function copyExportText() {
+  const ta = document.getElementById('exportTextarea');
+  ta.select();
+  try { document.execCommand('copy'); alert('已复制到剪贴板'); } catch(_) { alert('请长按文本手动复制'); }
+  closeExportModal();
+}
+
+function importKeys() {
+  document.getElementById('importTextarea').value = '';
+  document.getElementById('importModal').classList.add('open');
+}
+
+function closeImportModal() { document.getElementById('importModal').classList.remove('open'); }
+
+function triggerFileImport() {
+  document.getElementById('importFileInput').click();
+}
+
+function importFromText() {
+  const text = document.getElementById('importTextarea').value.trim();
+  if (!text) { alert('请先粘贴 JSON 内容'); return; }
+  mergeImportedKeys(text);
+  closeImportModal();
+}
+
+function handleImportFile(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { mergeImportedKeys(e.target.result); closeImportModal(); };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+function mergeImportedKeys(text) {
+  try {
+    const data = JSON.parse(text);
+    const list = Array.isArray(data) ? data : (Array.isArray(data.keys) ? data.keys : null);
+    if (!list) { alert('文件格式不正确，需要包含 keys 数组'); return; }
+    let added = 0, merged = 0;
+    for (const k of list) {
+      if (!k.keyid) continue;
+      const idx = savedKeys.findIndex(x => x.keyid === k.keyid);
+      if (idx >= 0) { savedKeys[idx] = { ...savedKeys[idx], ...k }; merged++; }
+      else          { savedKeys.push(k); added++; }
+    }
+    persistKeys();
+    renderKeysList();
+    alert(`导入完成！新增 ${added} 把，合并更新 ${merged} 把`);
+  } catch(err) {
+    alert('解析失败: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  刷新锁配置（登录 + 拉取钥匙信息）
 // ═══════════════════════════════════════════════════════════════════
 async function refreshConfig() {
@@ -732,7 +1414,7 @@ async function refreshConfig() {
   if (!loginname) { log('请先填写账号', 'warn'); return; }
 
   const btn = document.querySelector('.refresh-cfg-btn');
-  btn.disabled = true; btn.textContent = '刷新中…';
+  btn.disabled = true; btn.textContent = '刷新中…'; btn.style.opacity = '.6';
 
   try {
     const cookiesInput = document.getElementById('cfg-cookies');
@@ -749,6 +1431,13 @@ async function refreshConfig() {
       buildHeaders(), { loginname }
     );
     log('登录状态已刷新', 'info');
+
+    // 保存 appinfo 到信息面板
+    if (loginResp?.appinfo) {
+      infoPanelData = loginResp.appinfo;
+      saveInfoPanelSettings();
+      renderInfoPanel();
+    }
 
     const newCookie = loginResp?.jsessionid || loginResp?.JSESSIONID || loginResp?.sessionId || loginResp?.sessionid || loginResp?.cookie;
     if (newCookie) {
@@ -770,6 +1459,12 @@ async function refreshConfig() {
       throw new Error(`当前账号没有可用的锁配置。后端返回：${JSON.stringify({ result: data.result, total: data.total, count: data.count, message: data.message || data.msg || '' })}`);
     }
 
+    const currentCookies = cookiesInput.value.trim();
+    const currentAppinfo = loginResp?.appinfo || null;
+    for (const item of data.list) {
+      autoSaveKey(item, loginname, currentCookies, currentAppinfo);
+    }
+
     const item = data.list[0];
     document.getElementById('cfg-btid').value   = item.bluetoothid || '';
     document.getElementById('cfg-keyid').value  = item.keyid       || '';
@@ -780,11 +1475,20 @@ async function refreshConfig() {
     log(`到期时间: ${item.expiretime}`,    'success');
     log(`创建时间: ${item.createtime}`,    'success');
     log('配置已更新', 'success');
+
+    // 若当前无激活钥匙，自动激活第一把
+    if (!activeKeyId && item.keyid) {
+      activeKeyId = item.keyid;
+      persistActiveKey();
+      renderActiveKeyCard();
+      renderKeysList();
+    }
+
     saveConfig();
   } catch(e) {
     log(e.message || String(e), 'error');
   } finally {
-    btn.disabled = false; btn.textContent = '↻  刷新配置';
+    btn.disabled = false; btn.textContent = '↻  刷新配置'; btn.style.opacity = '';
   }
 }
 
@@ -797,20 +1501,20 @@ async function handleClick(scanAll=false) {
   setBtnState('busy');
 
   const cfg = {
-    bluetoothId:     document.getElementById('cfg-btid').value.trim().toUpperCase(),
-    keyId:           document.getElementById('cfg-keyid').value.trim().toLowerCase(),
-    loginName:       document.getElementById('cfg-login').value.trim(),
-    expireTime:      document.getElementById('cfg-expire').value.trim(),
-    createTime:      document.getElementById('cfg-create').value.trim(),
-    unlockHoldSeconds: parseInt(document.getElementById('cfg-delay').value, 10) || 10,
-    adminFlag:       0,
-    hardVersion:     '2.1.xy.N18.220428',
-    isReverse:       0,
-    delayRestore:    0,
-    motorOpen:       0,
-    motorClose:      0,
-    openReverseType: 0,
-    serverAddress:   'csmy.hzcu.edu.cn',
+    bluetoothId:      document.getElementById('cfg-btid').value.trim().toUpperCase(),
+    keyId:            document.getElementById('cfg-keyid').value.trim().toLowerCase(),
+    loginName:        document.getElementById('cfg-login').value.trim(),
+    expireTime:       document.getElementById('cfg-expire').value.trim(),
+    createTime:       document.getElementById('cfg-create').value.trim(),
+    unlockHoldSeconds: parseInt(document.getElementById('cfg-delay').value, 10) || 5,
+    adminFlag:        0,
+    hardVersion:      '2.1.xy.N18.220428',
+    isReverse:        0,
+    delayRestore:     0,
+    motorOpen:        0,
+    motorClose:       0,
+    openReverseType:  0,
+    serverAddress:    'csmy.hzcu.edu.cn',
   };
 
   try {
@@ -826,11 +1530,52 @@ async function handleClick(scanAll=false) {
     busy = false;
   }
 }
+
 // ═══════════════════════════════════════════════════════════════════
-//  初始化：加载持久化配置，监听输入变化自动保存
+//  关锁延迟步进器
+// ═══════════════════════════════════════════════════════════════════
+function stepDelay(delta) {
+  const input = document.getElementById('cfg-delay');
+  const val   = Math.min(300, Math.max(1, (parseInt(input.value, 10) || 5) + delta));
+  input.value = val;
+  document.getElementById('delayDisplay').textContent = val;
+  saveConfig();
+}
+
+function syncDelayDisplay() {
+  const val = parseInt(document.getElementById('cfg-delay').value, 10) || 5;
+  document.getElementById('delayDisplay').textContent = val;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Tab 导航
+// ═══════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
+  const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+  if (btn) btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  初始化
 // ═══════════════════════════════════════════════════════════════════
 (function init() {
   loadConfig();
+  syncDelayDisplay();
+  loadInfoPanelSettings();
+  loadKeys();
+  // 若活跃钥匙有 appinfo，以它为准覆盖全局面板数据
+  if (activeKeyId) {
+    const ak = savedKeys.find(k => k.keyid === activeKeyId);
+    if (ak?.appinfo) infoPanelData = ak.appinfo;
+  }
+  renderInfoPanel();
+  renderKeysList();
+  renderActiveKeyCard();
+
   let saveTimer = null;
   for (const id of CFG_FIELDS) {
     const el = document.getElementById(id);
