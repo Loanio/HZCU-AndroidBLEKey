@@ -3,15 +3,21 @@ package com.blelock.app
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.*
+import android.content.ContentValues
 import android.content.Context
+import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.widget.Toast
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
 import java.util.UUID
 
@@ -170,6 +176,41 @@ class NativeBridge(private val context: Context, private val webView: WebView) {
         ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         @Suppress("DEPRECATION")
         g.writeCharacteristic(ch)
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  文件下载：将文本内容保存到 Downloads 文件夹
+    // ══════════════════════════════════════════════════════════════════
+
+    @JavascriptInterface
+    fun downloadFile(filename: String, content: String) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+：通过 MediaStore 写入公共 Downloads，无需权限
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val resolver = context.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IOException("无法创建下载条目")
+                resolver.openOutputStream(uri)?.use { it.write(content.toByteArray(Charsets.UTF_8)) }
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                ui.post { Toast.makeText(context, "已保存到下载文件夹：$filename", Toast.LENGTH_LONG).show() }
+            } else {
+                // Android 8-9：写入应用专属外部存储（无需权限）
+                val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                    ?: context.filesDir
+                dir.mkdirs()
+                File(dir, filename).writeText(content, Charsets.UTF_8)
+                ui.post { Toast.makeText(context, "已保存：${File(dir, filename).absolutePath}", Toast.LENGTH_LONG).show() }
+            }
+        } catch (e: Exception) {
+            ui.post { Toast.makeText(context, "保存失败：${e.message}", Toast.LENGTH_SHORT).show() }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════

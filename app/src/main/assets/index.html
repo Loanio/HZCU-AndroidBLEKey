@@ -482,7 +482,6 @@
         <button class="icon-btn" onclick="closeFieldSelector()">✕</button>
       </div>
       <div id="fieldCheckboxList" class="checkbox-list"></div>
-      <button class="btn-primary" onclick="saveFieldSelection()">确认</button>
     </div>
   </div>
 
@@ -1148,7 +1147,7 @@ function openFieldSelector() {
   const list = document.getElementById('fieldCheckboxList');
   list.innerHTML = AVAILABLE_FIELDS.map(f =>
     `<label class="checkbox-item">
-      <input type="checkbox" value="${f.key}"${selectedInfoFields.includes(f.key) ? ' checked' : ''}>
+      <input type="checkbox" value="${f.key}"${selectedInfoFields.includes(f.key) ? ' checked' : ''} onchange="onFieldChange()">
       <span class="field-label">${f.label}</span>
       <span class="field-key">${f.key}</span>
     </label>`
@@ -1160,12 +1159,11 @@ function closeFieldSelector() {
   document.getElementById('fieldSelectorModal').classList.remove('open');
 }
 
-function saveFieldSelection() {
+function onFieldChange() {
   const checks = document.querySelectorAll('#fieldCheckboxList input[type=checkbox]');
   selectedInfoFields = Array.from(checks).filter(c => c.checked).map(c => c.value);
   saveInfoPanelSettings();
   renderInfoPanel();
-  closeFieldSelector();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1190,7 +1188,7 @@ function autoSaveKey(item, loginname, cookies, appinfo) {
   if (savedKeys.find(k => k.keyid === item.keyid)) return;
   savedKeys.push({
     keyid:       item.keyid,
-    label:       '',
+    label:       appinfo?.roomcode || '',
     bluetoothid: item.bluetoothid || '',
     expiretime:  item.expiretime  || '',
     createtime:  item.createtime  || '',
@@ -1343,13 +1341,20 @@ function exportKeys() {
 function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
 
 function downloadExportFile() {
-  const json = document.getElementById('exportTextarea').value;
+  const json     = document.getElementById('exportTextarea').value;
+  const filename = `ble_keys_${new Date().toISOString().slice(0,10)}.json`;
+  if (NATIVE) {
+    window.AndroidBridge.downloadFile(filename, json);
+    closeExportModal();
+    return;
+  }
   const blob = new Blob([json], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url; a.download = `ble_keys_${new Date().toISOString().slice(0,10)}.json`;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
+  closeExportModal();
 }
 
 function copyExportText() {
@@ -1381,7 +1386,10 @@ function handleImportFile(evt) {
   const file = evt.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => { mergeImportedKeys(e.target.result); closeImportModal(); };
+  reader.onload = e => {
+    mergeImportedKeys(e.target.result);
+    closeImportModal();
+  };
   reader.readAsText(file);
   evt.target.value = '';
 }
